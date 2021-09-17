@@ -1,8 +1,6 @@
 {
 	"textures":{ 
-		"texWater": "textures/water.jpg",
 		"texWall": "textures/wall.jpg",
-		"texArrows": "textures/arrows.png",
 		"texComplex": "textures/complex.png"
 	},
 }
