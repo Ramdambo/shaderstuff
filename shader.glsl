@@ -15,71 +15,62 @@ uniform sampler2D texWater;
 
 layout(location = 0) out vec4 out_color; // out_color must be written in order to see anything
 
-
-vec2 squareImaginary(vec2 number){
-	return vec2(
-		pow(number.x,2)-pow(number.y,2),
-		2*number.x*number.y
-	);
+vec3 palette(float d){
+	return mix(vec3(0.2,0.7,0.9),vec3(1.,0.,1.),d);
 }
 
-
-float iterateMandelbrot(vec2 coord, vec2 c, float maxIterations){
-	vec2 z = coord;
-	for(int i=0; i < maxIterations; i++){
-		z = squareImaginary(z) + c;
-		if ( length(z) > 2 ) return i / maxIterations;
-	}
-	return maxIterations;
-}
-
-vec4 colorScheme(float val, float maxVal) {
-  if (val < 0.1) {
-    return vec4(0, 0, 0, 0);
-  }
-  if (val < 0.4) {
-    return vec4(0, 0, 1, 0); 
-  }
-  if (val < 0.6) {
-    return vec4(0, 1, 0, 0);
-  }
-  if (val < 0.8) {
-    return vec4(1, 1, 0, 0);
-  }
-  if (val < 0.9) {
-    return vec4(1, 0.5, 0, 0);
-  }
-  return vec4(1, 0, 0, 0);
-}
-
-vec2 rotate(vec2 v, float a) {
-	float s = sin(a);
+vec2 rotate(vec2 p,float a){
 	float c = cos(a);
-	mat2 m = mat2(c, -s, s, c);
-	return m * v;
+    float s = sin(a);
+    return p*mat2(c,s,-s,c);
 }
 
-void main(void)
-{
-	
-  // Pixel <-> UV coordinates
-  vec2 uv = vec2(gl_FragCoord.x / v2Resolution.x, gl_FragCoord.y / v2Resolution.y);
-  uv -= 0.5;
-  uv /= vec2(v2Resolution.y / v2Resolution.x, 1);
-  //uv *= 2;
-  
-  vec2 c = vec2(sin(fGlobalTime * 0.2) * 0.3 + 0.4, cos(fGlobalTime * 0.2) * 0.1 + 0.4);  
+float map(vec3 p){
+    for( int i = 0; i<8; ++i){
+        float t = fGlobalTime*0.2;
+        p.xz =rotate(p.xz,t);
+        p.xy =rotate(p.xy,t*1.89);
+        p.xz = abs(p.xz);
+        p.xz-=.5;
+	}
+	return dot(sign(p),p)/5.;
+}
 
-	vec2 suck = uv;
-	//suck.x += sin(fGlobalTime * 0.5) * 0.1;
-  //suck.y += cos(fGlobalTime * 0.5) * 0.1;
-	suck.x = atan(sin(suck.x) / suck.y) / 3.14;
-	suck.y = length(suck) * max(sin (fGlobalTime * 0.1) * 0.1, 0.0) * cos(fGlobalTime * 0.1 ) * 10;
-  
-  //float val = iterateMandelbrot(suck.xy, c, 100);
-  //vec4 col = colorScheme(val, 100);
-  
-  vec4 col = texture(texComplex, suck.xy);
-  
-  out_color = col;
+vec4 rm (vec3 ro, vec3 rd){
+    float t = 0.;
+    vec3 col = vec3(0.);
+    float d;
+    for(float i =0.; i<64.; i++){
+		vec3 p = ro + rd*t;
+        d = map(p)*.5;
+        if(d<0.02){
+            break;
+        }
+        if(d>100.){
+        	break;
+        }
+        //col+=vec3(0.6,0.8,0.8)/(400.*(d));
+        col+=palette(length(p)*.1)/(400.*(d));
+        t+=d;
+    }
+    return vec4(col,1./(d*100.));
+}
+
+void main()
+{
+    vec2 uv = (gl_FragCoord.xy -(v2Resolution.xy/2.))/v2Resolution.x;
+    vec3 ro = vec3(0.,0.,-50.);
+    ro.xz = rotate(ro.xz, fGlobalTime);
+    vec3 cf = normalize(-ro);
+    vec3 cs = normalize(cross(cf,vec3(1.,1.,0.)));
+    vec3 cu = normalize(cross(cf,cs));
+    
+    vec3 uuv = ro+cf*3. + uv.x*cs + uv.y*cu;
+    
+    vec3 rd = normalize(uuv-ro);
+    
+    vec4 col = rm(ro,rd);
+    
+    
+    out_color = col;
 }

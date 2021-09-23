@@ -1,6 +1,12 @@
 {
 	"textures":{ 
-		"texWall": "textures/wall.jpg",
+		"texWall": "textures/walltiny.jpg",
 		"texComplex": "textures/complex.png"
 	},
+	"ndi":{
+    "enabled": true,
+    "identifier": "ramdambo", 
+    "frameRate": 60.0, // frames per second
+    "progressive": true, // progressive or interleaved?
+  },
 }
